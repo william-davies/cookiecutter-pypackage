@@ -14,4 +14,6 @@
   "command_line_interface": ["Click", "Argparse", "No command-line interface"],
   "create_author_file": "y",
   "open_source_license": ["MIT license", "BSD license", "ISC license", "Apache Software License 2.0", "GNU General Public License v3", "Not open source"],
+  "python_interpreter_version": "3.9",
+  "python_interpreter": "{{ {% if python_interpreter_version.startswith('3') %}python3{% else %}python{% endif %} }}"
 }
