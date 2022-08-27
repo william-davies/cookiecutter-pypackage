@@ -11,3 +11,11 @@ if not re.match(MODULE_REGEX, module_name):
 
     #Exit to cancel project
     sys.exit(1)
+
+PYTHON_VERSION_REGEX = r'^(2|3)'
+
+python_interpreter_version = '{{ cookiecutter.python_interpreter_version}}'
+
+if not re.match(PYTHON_VERSION_REGEX, python_interpreter_version):
+    print(f'ERROR: {python_interpreter_version} is an invalid Python version')
+    sys.exit(1)

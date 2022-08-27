@@ -30,7 +30,6 @@ create_environment:
 ifeq (True,$(HAS_CONDA))
 	@echo ">>> Detected conda, creating conda environment."
 	conda create --name $(PROJECT_SLUG) python=$(PYTHON_INTERPRETER_VERSION)
-endif
 	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_SLUG)"
 else
 	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
@@ -45,6 +44,9 @@ install_requirements: clean
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 
+## Test Python environment is set up correctly
+test_environment:
+	$(PYTHON_INTERPRETER) test_environment.py
 
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
