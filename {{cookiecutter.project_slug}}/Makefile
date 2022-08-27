@@ -2,6 +2,50 @@
 
 .DEFAULT_GOAL := help
 
+#################################################################################
+# GLOBALS                                                                       #
+#################################################################################
+
+PROJECT_SLUG = {{ cookiecutter.project_slug }}
+PYTHON_INTERPRETER_VERSION = {{ cookiecutter.python_interpreter_version }}
+
+ifeq (,$(shell which conda))
+	HAS_CONDA=False
+else
+	HAS_CONDA=True
+endif
+
+ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER_VERSION)))
+	PYTHON_INTERPRETER=python3
+else
+	PYTHON_INTERPRETER=python
+endif
+
+#################################################################################
+# COMMANDS                                                                      #
+#################################################################################
+
+## Set up Python interpreter environment
+create_environment:
+ifeq (True,$(HAS_CONDA))
+	@echo ">>> Detected conda, creating conda environment."
+	conda create --name $(PROJECT_SLUG) python=$(PYTHON_INTERPRETER_VERSION)
+endif
+	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_SLUG)"
+else
+	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
+	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
+	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
+	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_SLUG) --python=$(PYTHON_INTERPRETER)"
+	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_SLUG)"
+endif
+
+## Install Python Dependencies
+install_requirements: clean
+	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
+	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+
+
 define BROWSER_PYSCRIPT
 import os, webbrowser, sys
 
@@ -22,10 +66,10 @@ for line in sys.stdin:
 endef
 export PRINT_HELP_PYSCRIPT
 
-BROWSER := python -c "$$BROWSER_PYSCRIPT"
+BROWSER := $(PYTHON_INTERPRETER) -c "$$BROWSER_PYSCRIPT"
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@$(PYTHON_INTERPRETER) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
@@ -58,7 +102,7 @@ test: ## run tests quickly with the default Python
 {%- if cookiecutter.use_pytest == 'y' %}
 	pytest
 {%- else %}
-	python setup.py test
+	$(PYTHON_INTERPRETER) setup.py test
 {%- endif %}
 
 test-all: ## run tests on every Python version with tox
@@ -89,9 +133,7 @@ release: dist ## package and upload a release
 	twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	$(PYTHON_INTERPRETER) setup.py sdist
+	$(PYTHON_INTERPRETER) setup.py bdist_wheel
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	python setup.py install
