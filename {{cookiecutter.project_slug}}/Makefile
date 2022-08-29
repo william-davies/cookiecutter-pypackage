@@ -30,28 +30,29 @@ endif
 #################################################################################
 
 define PRINT_HELP_PYSCRIPT
-import re, sys
+import re
+import sys
 
 makefile_lines = sys.stdin.readlines()
 target_comment_pairs = []
 idx = 0
 while idx < len(makefile_lines):
-	comment_match = re.match(r"^## ([\w ]+)$$", makefile_lines[idx])
-	if comment_match:
-		comment = comment_match.group(1)
-		idx += 1
-		target_match = re.match(r"^(\w+):.*\n$$", makefile_lines[idx])
-		target = target_match.group(1)
-		target_comment_pairs.append((target, comment))
-	idx += 1
+    comment_match = re.match(r"^## ([\w ]+)$$", makefile_lines[idx])
+    if comment_match:
+        comment = comment_match.group(1)
+        idx += 1
+        target_match = re.match(r"^([\w/-]+):.*\n$$", makefile_lines[idx])
+        target = target_match.group(1)
+        target_comment_pairs.append((target, comment))
+    idx += 1
 
 max_target_length = 0
 for target, _ in target_comment_pairs:
-	if len(target) > max_target_length:
-		max_target_length = len(target)
+    if len(target) > max_target_length:
+        max_target_length = len(target)
 
 for target, comment in target_comment_pairs:
-	print(f"{target:{max_target_length+1}} {comment}")
+    print(f"{target:{max_target_length + 1}} {comment}")
 
 endef
 export PRINT_HELP_PYSCRIPT
@@ -98,48 +99,58 @@ export BROWSER_PYSCRIPT
 
 BROWSER := $(PYTHON_INTERPRETER) -c "$$BROWSER_PYSCRIPT"
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+## Remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc clean-test
 
-clean-build: ## remove build artifacts
+## Remove build artifacts
+clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
 
-clean-pyc: ## remove Python file artifacts
+## Remove Python file artifacts
+clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
-clean-test: ## remove test and coverage artifacts
+## Remove test and coverage artifacts
+clean-test:
 	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint/flake8: ## check style with flake8
+## Check style with flake8
+lint/flake8:
 	flake8 {{ cookiecutter.project_slug }} tests
 
 {%- if cookiecutter.use_black == 'y' %}
-lint/black: ## check style with black
+## Check style with black
+lint/black:
 	black --check {{ cookiecutter.project_slug }} tests
 {%- endif %}
 
-lint: lint/flake8{%- if cookiecutter.use_black == 'y' %} lint/black{%- endif %} ## check style
+## Check style
+lint: lint/flake8{%- if cookiecutter.use_black == 'y' %} lint/black{%- endif %}
 
-test: ## run tests quickly with the default Python
+## Run tests quickly with the default Python
+test:
 {%- if cookiecutter.use_pytest == 'y' %}
 	pytest
 {%- else %}
 	$(PYTHON_INTERPRETER) setup.py test
 {%- endif %}
 
-test-all: ## run tests on every Python version with tox
+## Run tests on every Python version with tox
+test-all:
 	tox
 
-coverage: ## check code coverage quickly with the default Python
+## Check code coverage quickly with the default Python
+coverage:
 {%- if cookiecutter.use_pytest == 'y' %}
 	coverage run --source {{ cookiecutter.project_slug }} -m pytest
 {%- else %}
@@ -149,7 +160,8 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-docs: ## generate Sphinx HTML documentation, including API docs
+## Generate Sphinx HTML documentation, including API docs
+docs:
 	rm -f docs/{{ cookiecutter.project_slug }}.rst
 	rm -f docs/modules.rst
 	sphinx-apidoc -o docs/ {{ cookiecutter.project_slug }}
@@ -157,13 +169,16 @@ docs: ## generate Sphinx HTML documentation, including API docs
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
 
-servedocs: docs ## compile the docs watching for changes
+## Compile the docs watching for changes
+servedocs: docs
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
-release: dist ## package and upload a release
+## Package and upload a release
+release: dist
 	twine upload dist/*
 
-dist: clean ## builds source and wheel package
+## Builds source and wheel package
+dist: clean
 	$(PYTHON_INTERPRETER) setup.py sdist
 	$(PYTHON_INTERPRETER) setup.py bdist_wheel
 	ls -l dist
