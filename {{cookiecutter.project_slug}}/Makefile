@@ -25,6 +25,44 @@ endif
 # COMMANDS                                                                      #
 #################################################################################
 
+#################################################################################
+# HELP                                                                          #
+#################################################################################
+
+define PRINT_HELP_PYSCRIPT
+import re, sys
+
+makefile_lines = sys.stdin.readlines()
+target_comment_pairs = []
+idx = 0
+while idx < len(makefile_lines):
+	comment_match = re.match(r"^## ([\w ]+)$$", makefile_lines[idx])
+	if comment_match:
+		comment = comment_match.group(1)
+		idx += 1
+		target_match = re.match(r"^(\w+):.*\n$$", makefile_lines[idx])
+		target = target_match.group(1)
+		target_comment_pairs.append((target, comment))
+	idx += 1
+
+max_target_length = 0
+for target, _ in target_comment_pairs:
+	if len(target) > max_target_length:
+		max_target_length = len(target)
+
+for target, comment in target_comment_pairs:
+	print(f"{target:{max_target_length+1}} {comment}")
+
+endef
+export PRINT_HELP_PYSCRIPT
+
+help:
+	@$(PYTHON_INTERPRETER) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+
+#################################################################################
+# NON-HELP COMMANDS                                                             #
+#################################################################################
+
 ## Set up Python interpreter environment
 create_environment:
 	ifeq (True,$(HAS_CONDA))
@@ -58,37 +96,7 @@ webbrowser.open("file://" + pathname2url(os.path.abspath(sys.argv[1])))
 endef
 export BROWSER_PYSCRIPT
 
-define PRINT_HELP_PYSCRIPT
-import re, sys
-
-makefile_lines = sys.stdin.readlines()
-target_comment_pairs = []
-idx = 0
-while idx < len(makefile_lines):
-	comment_match = re.match(r"^## ([\w ]+)$$", makefile_lines[idx])
-	if comment_match:
-		comment = comment_match.group(1)
-		idx += 1
-		target_match = re.match(r"^(\w+):.*\n$$", makefile_lines[idx])
-		target = target_match.group(1)
-		target_comment_pairs.append((target, comment))
-	idx += 1
-
-max_target_length = 0
-for target, _ in target_comment_pairs:
-	if len(target) > max_target_length:
-		max_target_length = len(target)
-
-for target, comment in target_comment_pairs:
-	print(f"{target:{max_target_length+1}} {comment}")
-
-endef
-export PRINT_HELP_PYSCRIPT
-
 BROWSER := $(PYTHON_INTERPRETER) -c "$$BROWSER_PYSCRIPT"
-
-help:
-	@$(PYTHON_INTERPRETER) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
 
