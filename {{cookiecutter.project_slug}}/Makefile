@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help lint lint/flake8
         {%- if cookiecutter.use_black == 'y' %} lint/black{% endif %}
 .DEFAULT_GOAL := help
 
@@ -27,22 +27,23 @@ endif
 
 ## Set up Python interpreter environment
 create_environment:
-ifeq (True,$(HAS_CONDA))
-	@echo ">>> Detected conda, creating conda environment."
-	conda create --name $(PROJECT_SLUG) python=$(PYTHON_INTERPRETER_VERSION)
-	@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_SLUG)"
-else
-	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_SLUG) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_SLUG)"
-endif
+	ifeq (True,$(HAS_CONDA))
+		@echo ">>> Detected conda, creating conda environment."
+		conda create --name $(PROJECT_SLUG) python=$(PYTHON_INTERPRETER_VERSION)
+		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_SLUG)"
+	else
+		$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
+		@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
+		export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
+		@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_SLUG) --python=$(PYTHON_INTERPRETER)"
+		@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_SLUG)"
+	endif
 
 ## Install Python Dependencies
-install_requirements: clean
+install_requirements: clean test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
+	pre-commit install
 
 ## Test Python environment is set up correctly
 test_environment:
@@ -60,11 +61,27 @@ export BROWSER_PYSCRIPT
 define PRINT_HELP_PYSCRIPT
 import re, sys
 
-for line in sys.stdin:
-	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
-	if match:
-		target, help = match.groups()
-		print("%-20s %s" % (target, help))
+makefile_lines = sys.stdin.readlines()
+target_comment_pairs = []
+idx = 0
+while idx < len(makefile_lines):
+	comment_match = re.match(r"^## ([\w ]+)$$", makefile_lines[idx])
+	if comment_match:
+		comment = comment_match.group(1)
+		idx += 1
+		target_match = re.match(r"^(\w+):.*\n$$", makefile_lines[idx])
+		target = target_match.group(1)
+		target_comment_pairs.append((target, comment))
+	idx += 1
+
+max_target_length = 0
+for target, _ in target_comment_pairs:
+	if len(target) > max_target_length:
+		max_target_length = len(target)
+
+for target, comment in target_comment_pairs:
+	print(f"{target:{max_target_length+1}} {comment}")
+
 endef
 export PRINT_HELP_PYSCRIPT
 
