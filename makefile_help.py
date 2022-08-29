@@ -9,7 +9,7 @@ while idx < len(makefile_lines):
     if comment_match:
         comment = comment_match.group(1)
         idx += 1
-        target_match = re.match(r"^(\w+):.*\n$$", makefile_lines[idx])
+        target_match = re.match(r"^([\w/-]+):.*\n$$", makefile_lines[idx])
         target = target_match.group(1)
         target_comment_pairs.append((target, comment))
     idx += 1
